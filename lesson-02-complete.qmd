@@ -1,0 +1,393 @@
+---
+title: "Introduction to data visualization"
+author: "Reiko Okamoto"
+format: html
+editor: visual
+---
+
+## ⏪ What did we discuss last time? 
+
+-   R is a language for statistical computing and graphics.
+
+-   RStudio is a popular IDE for R.
+
+-   GitHub is a platform allowing people to store and manage their code.
+
+-   Packages contain code, documentation, and sample data in a standardized format that can be installed by users.
+
+-   Tidyverse is a collection of popular packages designed for data science.
+
+![](images/clipboard-1253734659.png)
+
+## 🍽️ Today's menu
+
+-   Introduction to ggplot2
+
+-   Exploring the sample data
+
+-   Histograms
+
+-   Scatter plots
+
+-   Bar plots
+
+-   Changing colors
+
+-   Line plots
+
+-   Changing the look and feel
+
+-   Other types of plots
+
+-   Saving our masterpieces
+
+## 🖌️ Introduction to ggplot2 (1 min)
+
+> ggplot2 is a system for declaratively creating graphics, based on [The Grammar of Graphics](https://www.amazon.com/Grammar-Graphics-Statistics-Computing/dp/0387245448/ref=as_li_ss_tl). You provide the data, tell ggplot2 how to map variables to aesthetics, what graphical primitives to use, and it takes care of the details.
+
+--- [Create Elegant Data Visualisations Using the Grammar of Graphics • ggplot2](https://ggplot2.tidyverse.org/)
+
+📣 Load the package we'll be using:
+
+```{r load-package}
+library(tidyverse)
+library(lubridate)
+library(RColorBrewer)
+```
+
+💡 You only need to install a package once, but you need to reload it every time you start a new session.
+
+## 🔍 Exploring the sample data (3 min)
+
+![](images/clipboard-3227188626.png)
+
+-   Data originally comes from SNCF (La Société nationale des chemins de fer français), France's national state-owned railway company.
+
+-   We'll be using a modified version based on a CSV file from this [repository](https://github.com/rfordatascience/tidytuesday/tree/master/data/2019/2019-02-26).
+
+📣 Read the data:
+
+```{r read-data}
+data <- read_csv("french_trains.csv")
+
+data
+```
+
+📣 Inspect the data dictionary to explore the type and description of each variable:
+
+| Variable                  | Type      | Description                           |
+|-----------------------|------------------|-------------------------------|
+| `year`                    | double    | Year of observation                   |
+| `month`                   | double    | Month of observation                  |
+| `service`                 | character | Type of train service                 |
+| `departure_station`       | character | Departure station name                |
+| `arrival_station`         | character | Arrival station name                  |
+| `journey_time_avg`        | double    | Average journey time (min)            |
+| `total_num_trips`         | double    | Total number of trains in time period |
+| `avg_delay_all_departing` | double    | Average departure delay (min)         |
+| `avg_delay_all_arriving`  | double    | Average arrival delay (min)           |
+| `num_late_at_departure`   | double    | Number of trains departing late       |
+| `num_arriving_late`       | double    | Number of trains arriving late        |
+
+```{r inspect-data}
+head(data)
+tail(data)
+```
+
+-   Each row summarizes information on trips from one station to another for a given month and year:
+
+    -   The first row captures information on trips from **AIX EN PROVENCE TGV** (Aix-en-Provence) to **PARIS LYON** (Paris-Gare-de-Lyon) for the month of **JANUARY 2015**.
+
+    -   The last row captures information on trips from **ZURICH** to **PARIS LYON** for the month of **NOVEMBER 2018**.
+
+## 📈 Histogram (5 min)
+
+📣 Create a histogram to visualize the distribution of average journey time:
+
+```{r histogram}
+hist <- data |> 
+  ggplot(aes(x = journey_time_avg)) +
+  geom_histogram()
+
+hist
+```
+
+-   We can see that the distribution of average journey time is right-skewed.
+
+💡 Creating a plot is like building a layered cake: all plots start with a `ggplot()` call, supplying default data and aesthetics mappings via `aes()`. Next, you create layers using `geom_*` functions, adding components with `+`.
+
+## 📈 Scatter plot (15 min)
+
+📣 Create a scatter plot to visualize the relationship between average journey time and average arrival delay:
+
+```{r scatter-plot}
+sct_plt <- data |> 
+  filter(avg_delay_all_arriving > 0) |> # only rows with positive delay
+  ggplot(aes(x = journey_time_avg, y = avg_delay_all_arriving)) + 
+  geom_point()
+
+sct_plt
+```
+
+-   It looks as though the variance of delay increases as the average journey time increases. For journeys that average \<1 hour, arrival delays seem to be \<10 minutes. Meanwhile, for journeys that average 5 hours, arrival delays seem to be \<30 minutes.
+
+📣 Change the color and size of the points:
+
+```{r scatter-plot-aes}
+# change opacity 
+sct_plt_a <- data |> 
+  filter(avg_delay_all_arriving > 0) |> # only rows with positive delay
+  ggplot(aes(x = journey_time_avg, y = avg_delay_all_arriving)) + 
+  geom_point(alpha = 0.3)
+
+sct_plt_a
+
+# change point size
+sct_plt_b <- data |> 
+  filter(avg_delay_all_arriving > 0) |> 
+  ggplot(aes(x = journey_time_avg, y = avg_delay_all_arriving)) +
+  geom_point(size = 0.8)
+
+sct_plt_b
+
+# change point color
+sct_plt_c <- data |> 
+  filter(avg_delay_all_arriving > 0) |> 
+  ggplot(aes(x = journey_time_avg, y = avg_delay_all_arriving)) +
+  geom_point(color = "red")
+
+sct_plt_c
+```
+
+📣 Add title and change axis labels:
+
+```{r change-labels}
+sct_plt <- sct_plt +
+  labs(title = "French train punctuality",
+       subtitle = "Jan. 2015 to Nov. 2018",
+       x = "Average journey time (min)",
+       y = "Average arrival delay (min)")
+
+sct_plt
+```
+
+## 📈 Bar plot (15 min)
+
+![](images/clipboard-1657083407.png)
+
+-   Gare du Nord, officially Paris-Nord, is the busiest railway station in Europe by total passenger numbers.
+
+📣 Create a bar plot to show the number of departures from Paris-Nord in 2015, by destination:
+
+```{r bar-plot}
+bar_plt <- data |> 
+  filter(departure_station == "PARIS NORD",
+         year == 2015) |> 
+  group_by(arrival_station) |> 
+  summarise(n = sum(total_num_trips)) |> 
+  ggplot(aes(x = arrival_station, y = n)) +
+  geom_bar(stat = "identity")
+
+bar_plt
+```
+
+📣 Create a horizontal bar plot:
+
+```{r h-bar-plot}
+h_bar_plt <- bar_plt +
+  coord_flip() # flip cartesian coordinates
+
+h_bar_plt
+```
+
+📣 Create a grouped bar plot to compare the number of departures from Paris-Nord in 2015 and 2016, by destination:
+
+```{r multi-bar-plot}
+multi_bar_plot <- data |> 
+  filter(departure_station == "PARIS NORD",
+         year %in% c(2015, 2016)) |> 
+  mutate(year = as.factor(year)) |> 
+  group_by(year, arrival_station) |> 
+  summarise(n = sum(total_num_trips), .groups = "drop") |> 
+  ggplot(aes(x = arrival_station, y = n, fill = year)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  coord_flip()
+
+multi_bar_plot
+```
+
+## 🎨 Changing colors (10 min)
+
+📣 Change colors manually:
+
+```{r change-fill-manual}
+multi_bar_plot +
+  scale_fill_manual(values=c("#651C32", "#F2827F"))
+```
+
+💡 Use `scale_fill_manual()` for bar, box, and violin plots; use `scale_color_manual()` for scatter and line plots. We'll use the latter function in just a bit.
+
+📣 Change colors using the [RColorBrewer](https://r-graph-gallery.com/38-rcolorbrewers-palettes.html) package:
+
+```{r change-fill-brewer}
+display.brewer.all()
+
+multi_bar_plot +
+  scale_fill_brewer(palette = "Pastel1")
+```
+
+📣 An estimated 2.6 million Canadians are colorblind. Create a colorblind-friendly plot using the RColorBrewer package:
+
+```{r change-fill-colorblind}
+display.brewer.all(colorblindFriendly = TRUE)
+
+multi_bar_plot +
+  scale_fill_brewer(palette = "Set2")
+```
+
+## ⏸️ Break (10 min)
+
+## 📈 Line plot (5 min)
+
+![](images/clipboard-3599526949.png)
+
+-   Brest is a port city in Brittany, in northwestern France.
+
+📣 Create a line plot to show how the monthly number of trips from Paris to Brest fluctuates throughout the year:
+
+```{r line-plot}
+# generate date column (will make it easier to plot temporal data)
+data <- data |> 
+  mutate(ymd = paste(year, month, 1, sep = "-"),
+         ymd = lubridate::ymd(ymd))
+  
+line_plt <- data |> 
+  filter(departure_station == "PARIS MONTPARNASSE",
+         arrival_station == "BREST") |> 
+  ggplot(aes(x = ymd, y = total_num_trips)) +
+  geom_line() +
+  labs(title = "Monthly number of trips from Paris to Brest",
+       subtitle = "Jan. 2015 to Nov. 2018",
+       x = "Year",
+       y = "Monthly count")
+
+line_plt
+```
+
+## ✏️ Changing the look and feel (15 min)
+
+📣 Create a line plot to show how the monthly number of trips from Paris to multiple cities in Brittany fluctuate throughout the year:
+
+-   Force the y-axis to start at 0
+
+-   Add year-month labels to the x-axis and rotate them
+
+-   Apply [pre-existing themes](https://ggplot2.tidyverse.org/reference/ggtheme.html)
+
+-   Change elements that are specified by the theme
+
+```{r multi-line-plot}
+brittany_cities <- c("RENNES", "BREST", "QUIMPER")  
+
+brittany_plt <- data |> 
+  filter(departure_station == "PARIS MONTPARNASSE",
+         arrival_station %in% brittany_cities) |> 
+  ggplot(aes(x = ymd, y = total_num_trips, color = arrival_station)) +
+  geom_line() +
+  scale_y_continuous(limits = c(0, 700), expand = c(0, 0)) +
+  scale_x_date(date_breaks = "4 months", date_labels = "%b %Y") +
+  scale_color_brewer(palette = "Dark2") +
+  labs(title = "Monthly number of trips from Paris to cities in Brittany",
+       y = "Monthly number of trips",
+       color = "Arrival station") +
+  theme_minimal()
+
+brittany_plt +
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_text(angle = 45, hjust = 1, size = rel(0.9)),
+        plot.title = element_text(hjust = 0.5))
+```
+
+-   *Why does Rennes have the most frequent service?*
+
+    -   Trains departing from Paris often separate in Rennes (first part going to Brest and the latter going to Quimper).
+
+    -   \# of trains to Rennes ≈ \# of trains to Brest + \# of trains to Quimper
+
+💡 Use [`scale_*_continuous()`](https://ggplot2.tidyverse.org/reference/scale_continuous.html) to position scales for continuous data, [`scale_*_discrete()`](https://ggplot2.tidyverse.org/reference/scale_discrete.html) to position scales for discrete data, and [`scale_*_date()`](https://ggplot2.tidyverse.org/reference/scale_date.html) to position scales for date data.
+
+💡 Modify the theme to customize the non-data components of your plots (e.g., titles, labels, grid lines). Make sure to call `theme_minimal()` before `theme()` or else the modifications you have specified will be overwritten.
+
+📣 Save and apply our custom theme:
+
+```{r apply-custom-theme}
+theme_custom <- theme(axis.title.x = element_blank(),
+                      axis.text.x = element_text(angle = 45, hjust = 1, size = rel(0.9)),
+                      plot.title = element_text(hjust = 0.5))
+
+brittany_plt <- brittany_plt + theme_custom
+```
+
+💡 A system like this allows us to reproducibly make the same changes across multiple plots with less typing!
+
+## 📈 Other types of plots (15 min)
+
+📣 Create a **box plot** to show the distribution of the monthly number of trips from Paris-Gare-de-Lyon for each international destination:
+
+```{r box-plot}
+box_plt <- data |> 
+  filter(departure_station == "PARIS LYON",
+         service == "International") |> 
+  ggplot(aes(x = arrival_station, y = total_num_trips)) +
+  geom_boxplot() 
+
+box_plt
+```
+
+📣 Change one line of code to visualize the distributions using a **violin plot**:
+
+```{r violin-plot}
+violin_plt <- data |> 
+  filter(departure_station == "PARIS LYON",
+         service == "International") |> 
+  ggplot(aes(x = arrival_station, y = total_num_trips)) +
+  geom_violin()
+
+violin_plt
+```
+
+> A violin plot is more informative than a plain box plot. While a box plot only shows summary statistics such as mean/median and interquartile ranges, the violin plot shows the full distribution of the data. The difference is particularly useful when the data distribution is multimodal (more than one peak).
+
+--- [Violin plot - Wikipedia](https://en.wikipedia.org/wiki/Violin_plot#:~:text=A%20violin%20plot%20is%20more,(more%20than%20one%20peak).)
+
+📣 Create a line plot to show how the monthly number of trips from Paris to multiple cities in Brittany fluctuate over time. Use **facets** to organize multiple line plots into a panel (i.e., one plot for 2015, another for 2016, and so on):
+
+```{r facets}
+facet <- data |> 
+  filter(departure_station == "PARIS MONTPARNASSE",
+         arrival_station %in% brittany_cities) |> 
+  ggplot(aes(x = month, y = total_num_trips, color = arrival_station)) +
+  geom_line() +
+ facet_wrap(vars(year))
+
+facet
+```
+
+💡 Organizing a sequence of panels in this fashion might be an appropriate use of screen space in some cases.
+
+## 💾 Saving our masterpieces (3 min)
+
+```{r ggsave}
+ggsave(filename = "brittany.png", 
+       plot = brittany_plt)
+```
+
+💡 By default, if you don't specify the `plot` argument, the function will save the last plot displayed.
+
+## 📚 References
+
+-   ⭐[From data to Viz \| Find the graphic you need (data-to-viz.com)](https://www.data-to-viz.com/)
+-   ⭐[Be Awesome in ggplot2: A Practical Guide to be Highly Effective - R software and data visualization - Easy Guides - Wiki - STHDA](http://www.sthda.com/english/wiki/be-awesome-in-ggplot2-a-practical-guide-to-be-highly-effective-r-software-and-data-visualization)
+-   [Function reference • ggplot2 (tidyverse.org)](https://ggplot2.tidyverse.org/reference/)
+-   [Modify components of a theme --- theme • ggplot2 (tidyverse.org)](https://ggplot2.tidyverse.org/reference/theme.html)
+-   [Get, set, and modify the active theme --- theme_get • ggplot2 (tidyverse.org)](https://ggplot2.tidyverse.org/reference/theme_get.html)
